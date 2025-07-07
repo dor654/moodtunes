@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
-import { moods } from "../services/mockData";
+import { moods, mockTracks } from "../services/mockData";
+import { useMusic } from "../context/MusicContext";
 import MoodCard from "../components/mood/MoodCard";
 import MoodIntensitySlider from "../components/mood/MoodIntensitySlider";
 import ActivitySelector from "../components/mood/ActivitySelector";
@@ -127,9 +128,15 @@ const MoodSelector = () => {
   const [activity, setActivity] = useState("working");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const { playTrack } = useMusic();
 
   const handleMoodSelect = (mood) => {
     setSelectedMood(mood);
+    // Play a demo track when mood is selected
+    if (mockTracks.length > 0) {
+      const randomTrack = mockTracks[Math.floor(Math.random() * mockTracks.length)];
+      playTrack(randomTrack, mockTracks);
+    }
   };
 
   const handleGetRecommendations = async () => {

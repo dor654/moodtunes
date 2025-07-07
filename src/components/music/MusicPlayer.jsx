@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import styled from "styled-components";
 import { FaPlay, FaPause, FaStepBackward, FaStepForward, FaVolumeUp, FaVolumeMute } from "react-icons/fa";
+import { useMusic } from "../../context/MusicContext";
 
 const PlayerContainer = styled.div`
   position: fixed;
@@ -221,26 +222,29 @@ const VolumeSlider = styled.input`
   }
 `;
 
-const MusicPlayer = ({ 
-  currentTrack = null, 
-  isPlaying = false, 
-  onPlay, 
-  onPause, 
-  onNext, 
-  onPrevious 
-}) => {
-  const [volume, setVolume] = useState(50);
-  const [isMuted, setIsMuted] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
+const MusicPlayer = () => {
+  const {
+    currentTrack,
+    isPlaying,
+    volume,
+    isMuted,
+    currentTime,
+    duration,
+    togglePlayPause,
+    nextTrack,
+    previousTrack,
+    setVolume,
+    toggleMute,
+    setCurrentTime,
+    setDuration,
+  } = useMusic();
 
   // Mock duration for demo purposes
   useEffect(() => {
-    if (currentTrack) {
+    if (currentTrack && !duration) {
       setDuration(210); // 3:30 in seconds
     }
-  }, [currentTrack]);
+  }, [currentTrack, duration, setDuration]);
 
   // Simulate progress for demo
   useEffect(() => {
@@ -249,7 +253,7 @@ const MusicPlayer = ({
         setCurrentTime(prev => {
           const newTime = prev + 1;
           if (newTime >= duration) {
-            if (onNext) onNext();
+            nextTrack();
             return 0;
           }
           return newTime;
@@ -258,30 +262,11 @@ const MusicPlayer = ({
 
       return () => clearInterval(interval);
     }
-  }, [isPlaying, currentTrack, duration, onNext]);
-
-  useEffect(() => {
-    if (duration > 0) {
-      setProgress((currentTime / duration) * 100);
-    }
-  }, [currentTime, duration]);
-
-  const handlePlayPause = () => {
-    if (isPlaying) {
-      if (onPause) onPause();
-    } else {
-      if (onPlay) onPlay();
-    }
-  };
+  }, [isPlaying, currentTrack, duration, nextTrack, setCurrentTime]);
 
   const handleVolumeChange = (e) => {
     const newVolume = parseInt(e.target.value);
     setVolume(newVolume);
-    setIsMuted(newVolume === 0);
-  };
-
-  const handleMuteToggle = () => {
-    setIsMuted(!isMuted);
   };
 
   const formatTime = (seconds) => {
@@ -297,6 +282,8 @@ const MusicPlayer = ({
     const newTime = (newProgress / 100) * duration;
     setCurrentTime(Math.floor(newTime));
   };
+
+  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   if (!currentTrack) {
     return null;
@@ -321,18 +308,18 @@ const MusicPlayer = ({
 
         <PlayerControls>
           <ControlButtons>
-            <ControlButton onClick={onPrevious} disabled={!onPrevious}>
+            <ControlButton onClick={previousTrack}>
               <FaStepBackward />
             </ControlButton>
             
             <ControlButton 
               className="primary"
-              onClick={handlePlayPause}
+              onClick={togglePlayPause}
             >
               {isPlaying ? <FaPause /> : <FaPlay />}
             </ControlButton>
             
-            <ControlButton onClick={onNext} disabled={!onNext}>
+            <ControlButton onClick={nextTrack}>
               <FaStepForward />
             </ControlButton>
           </ControlButtons>
@@ -347,7 +334,7 @@ const MusicPlayer = ({
         </PlayerControls>
 
         <VolumeSection>
-          <VolumeButton onClick={handleMuteToggle}>
+          <VolumeButton onClick={toggleMute}>
             {isMuted || volume === 0 ? <FaVolumeMute /> : <FaVolumeUp />}
           </VolumeButton>
           <VolumeSlider

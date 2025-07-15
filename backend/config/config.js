@@ -21,7 +21,7 @@ module.exports = {
   BCRYPT_ROUNDS: process.env.BCRYPT_ROUNDS || 12,
 
   // Spotify API configuration
-  SPOTIFY_CLIENT_ID: process.env.SPOTIFY_CLIENT_ID || "",
-  SPOTIFY_CLIENT_SECRET: process.env.SPOTIFY_CLIENT_SECRET || "",
-  SPOTIFY_REDIRECT_URI: process.env.SPOTIFY_REDIRECT_URI || "http://localhost:3000/auth/callback",
+  SPOTIFY_CLIENT_ID: process.env.SPOTIFY_CLIENT_ID || "843ee24361934198b12fc5cafbbd8854",
+  SPOTIFY_CLIENT_SECRET: process.env.SPOTIFY_CLIENT_SECRET || "d788d425fd6d48f4933c46cb8fdad16d",
+  SPOTIFY_REDIRECT_URI: process.env.SPOTIFY_REDIRECT_URI || "http://127.0.0.1:3000/auth/callback"
 };

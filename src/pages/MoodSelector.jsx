@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
-import { moods, mockTracks } from "../services/mockData";
+import { fetchMoods } from "../services/api";
+import { getMoodRecommendations } from "../services/music";
 import { useMusic } from "../context/MusicContext";
 import MoodCard from "../components/mood/MoodCard";
 import MoodIntensitySlider from "../components/mood/MoodIntensitySlider";
@@ -127,15 +128,34 @@ const MoodSelector = () => {
   const [intensity, setIntensity] = useState(5);
   const [activity, setActivity] = useState("working");
   const [isLoading, setIsLoading] = useState(false);
+  const [moods, setMoods] = useState([]);
   const navigate = useNavigate();
   const { playTrack } = useMusic();
 
-  const handleMoodSelect = (mood) => {
+  // Load moods on component mount
+  useEffect(() => {
+    const loadMoods = async () => {
+      try {
+        const moodsData = await fetchMoods();
+        setMoods(moodsData);
+      } catch (error) {
+        console.error('Failed to load moods:', error);
+      }
+    };
+    loadMoods();
+  }, []);
+
+  const handleMoodSelect = async (mood) => {
     setSelectedMood(mood);
     // Play a demo track when mood is selected
-    if (mockTracks.length > 0) {
-      const randomTrack = mockTracks[Math.floor(Math.random() * mockTracks.length)];
-      playTrack(randomTrack, mockTracks);
+    try {
+      const recommendations = await getMoodRecommendations(mood.id, { limit: 5 });
+      if (recommendations.recommendations && recommendations.recommendations.length > 0) {
+        const randomTrack = recommendations.recommendations[Math.floor(Math.random() * recommendations.recommendations.length)];
+        playTrack(randomTrack, recommendations.recommendations);
+      }
+    } catch (error) {
+      console.error('Failed to load demo track:', error);
     }
   };
 
@@ -144,10 +164,7 @@ const MoodSelector = () => {
 
     setIsLoading(true);
     
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    // Navigate to recommendations page with state
+    // Navigate to recommendations page with state (remove artificial delay)
     navigate('/recommendations', {
       state: {
         mood: selectedMood,

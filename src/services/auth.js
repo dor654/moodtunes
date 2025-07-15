@@ -1,36 +1,38 @@
-// import { post, get } from '../utils/api';
+import { post, get } from '../utils/api';
 import Cookies from 'js-cookie';
-
-// Mock delay for simulating API calls
-const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // Login function
 export const login = async (email, password) => {
   try {
-    // For now, use mock implementation until real backend is available
-    await delay(1000);
+    const response = await post('/auth/login', { email, password });
     
-    if (email && password) {
-      // Mock successful login
-      const mockResponse = {
-        success: true,
-        user: {
-          id: 'user123',
-          name: email.split('@')[0], // Use email prefix as name
-          email: email,
-          avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(email.split('@')[0])}&background=6366f1&color=fff`,
-          preferences: {
-            favoriteGenres: [],
-            recentMoods: [],
-          },
-        },
-        token: `mock_jwt_token_${Date.now()}`,
-        refreshToken: `mock_refresh_token_${Date.now()}`,
-      };
-
-      return mockResponse;
+    if (response.success && response.token) {
+      // Store token and user data
+      Cookies.set('token', response.token, {
+        expires: 7,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict'
+      });
+      
+      if (response.refreshToken) {
+        Cookies.set('refreshToken', response.refreshToken, {
+          expires: 30,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'strict'
+        });
+      }
+      
+      if (response.user) {
+        Cookies.set('user', JSON.stringify(response.user), {
+          expires: 7,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'strict'
+        });
+      }
+      
+      return response;
     } else {
-      throw new Error('Email and password are required');
+      throw new Error('Invalid response from server');
     }
   } catch (error) {
     throw new Error(error.message || 'Login failed');
@@ -59,27 +61,40 @@ export const register = async (username, email, password, confirmPassword) => {
       throw new Error('Please enter a valid email address');
     }
 
-    // For now, use mock implementation
-    await delay(1000);
+    const response = await post('/auth/register', { 
+      username, 
+      email, 
+      password 
+    });
     
-    // Mock successful registration
-    const mockResponse = {
-      success: true,
-      user: {
-        id: `user_${Date.now()}`,
-        name: username,
-        email: email,
-        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(username)}&background=6366f1&color=fff`,
-        preferences: {
-          favoriteGenres: [],
-          recentMoods: [],
-        },
-      },
-      token: `mock_jwt_token_${Date.now()}`,
-      refreshToken: `mock_refresh_token_${Date.now()}`,
-    };
-
-    return mockResponse;
+    if (response.success && response.token) {
+      // Store token and user data
+      Cookies.set('token', response.token, {
+        expires: 7,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict'
+      });
+      
+      if (response.refreshToken) {
+        Cookies.set('refreshToken', response.refreshToken, {
+          expires: 30,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'strict'
+        });
+      }
+      
+      if (response.user) {
+        Cookies.set('user', JSON.stringify(response.user), {
+          expires: 7,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'strict'
+        });
+      }
+      
+      return response;
+    } else {
+      throw new Error('Invalid response from server');
+    }
   } catch (error) {
     throw new Error(error.message || 'Registration failed');
   }
@@ -88,17 +103,26 @@ export const register = async (username, email, password, confirmPassword) => {
 // Logout function
 export const logout = async () => {
   try {
-    // Clear tokens
+    const token = Cookies.get('token');
+    
+    // Clear tokens first (even if API call fails)
     Cookies.remove('token');
     Cookies.remove('refreshToken');
     Cookies.remove('user');
     
-    // In a real app, you might also call the backend to invalidate the session
-    // await post('/auth/logout');
+    // Try to notify backend about logout
+    if (token) {
+      try {
+        await post('/auth/logout');
+      } catch (error) {
+        // Ignore errors - local cleanup is more important
+        console.warn('Logout API call failed:', error.message);
+      }
+    }
     
     return { success: true };
   } catch (error) {
-    // Even if the logout request fails, clear local storage
+    // Even if everything fails, ensure local cleanup
     Cookies.remove('token');
     Cookies.remove('refreshToken');
     Cookies.remove('user');
@@ -116,28 +140,30 @@ export const refreshToken = async () => {
       throw new Error('No refresh token available');
     }
 
-    // For now, mock the refresh
-    await delay(500);
-    
-    const mockResponse = {
-      token: `mock_jwt_token_refreshed_${Date.now()}`,
-      refreshToken: `mock_refresh_token_refreshed_${Date.now()}`,
-    };
-
-    // Store new tokens
-    Cookies.set('token', mockResponse.token, {
-      expires: 7,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict'
+    const response = await post('/auth/refresh', { 
+      refreshToken: refreshTokenValue 
     });
     
-    Cookies.set('refreshToken', mockResponse.refreshToken, {
-      expires: 30, // Refresh token lasts longer
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict'
-    });
+    if (response.token) {
+      // Store new tokens
+      Cookies.set('token', response.token, {
+        expires: 7,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict'
+      });
+      
+      if (response.refreshToken) {
+        Cookies.set('refreshToken', response.refreshToken, {
+          expires: 30, // Refresh token lasts longer
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'strict'
+        });
+      }
 
-    return mockResponse;
+      return response;
+    } else {
+      throw new Error('Invalid response from server');
+    }
   } catch (error) {
     throw new Error(error.message || 'Token refresh failed');
   }
@@ -146,23 +172,20 @@ export const refreshToken = async () => {
 // Validate token function
 export const validateToken = async (token) => {
   try {
-    // For now, just check if token exists and is not expired
     if (!token) {
       throw new Error('No token provided');
     }
 
-    // Mock validation - in real app, this would call the backend
-    await delay(200);
+    const response = await get('/auth/validate', {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
     
-    // Check if token is in valid format (mock check)
-    if (token.startsWith('mock_jwt_token_')) {
-      return {
-        valid: true,
-        user: JSON.parse(Cookies.get('user') || '{}'),
-      };
-    } else {
-      throw new Error('Invalid token format');
-    }
+    return {
+      valid: response.valid,
+      user: response.user,
+    };
   } catch (error) {
     throw new Error(error.message || 'Token validation failed');
   }
@@ -181,12 +204,11 @@ export const resetPassword = async (email) => {
       throw new Error('Please enter a valid email address');
     }
 
-    // Mock password reset
-    await delay(800);
+    const response = await post('/auth/reset-password', { email });
     
     return {
-      success: true,
-      message: 'Password reset instructions have been sent to your email',
+      success: response.success,
+      message: response.message || 'Password reset instructions have been sent to your email',
     };
   } catch (error) {
     throw new Error(error.message || 'Password reset failed');
@@ -212,12 +234,14 @@ export const changePassword = async (currentPassword, newPassword, confirmPasswo
       throw new Error('New password must be different from current password');
     }
 
-    // Mock password change
-    await delay(800);
+    const response = await post('/auth/change-password', {
+      currentPassword,
+      newPassword
+    });
     
     return {
-      success: true,
-      message: 'Password changed successfully',
+      success: response.success,
+      message: response.message || 'Password changed successfully',
     };
   } catch (error) {
     throw new Error(error.message || 'Password change failed');

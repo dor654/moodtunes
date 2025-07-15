@@ -3,6 +3,7 @@ const Playlist = require('../models/Playlist');
 const Mood = require('../models/Mood');
 const ApiResponse = require('../utils/apiResponse');
 const { asyncHandler } = require('../middleware/error');
+const spotifyService = require('../services/spotifyService');
 
 /**
  * @desc    Get music recommendations based on mood
@@ -18,43 +19,71 @@ const getRecommendations = asyncHandler(async (req, res) => {
     );
   }
 
-  // Verify mood exists
-  const moodDoc = await Mood.findById(mood);
-  if (!moodDoc || !moodDoc.isActive) {
-    return res.status(404).json(
-      ApiResponse.notFound('Mood not found')
+  try {
+    let recommendations;
+    
+    if (type === 'tracks') {
+      // Get recommendations from Spotify
+      recommendations = await spotifyService.getRecommendationsByMood(mood, parseInt(limit));
+    } else if (type === 'playlists') {
+      // Get featured playlists for playlists type
+      recommendations = await spotifyService.getFeaturedPlaylists(parseInt(limit));
+    } else {
+      return res.status(400).json(
+        ApiResponse.error('Type must be either "tracks" or "playlists"')
+      );
+    }
+
+    // Find mood info for response
+    const moodInfo = {
+      id: mood,
+      name: mood.charAt(0).toUpperCase() + mood.slice(1),
+      emoji: getMoodEmoji(mood),
+      color: getMoodColor(mood),
+    };
+
+    res.json(
+      ApiResponse.success({
+        mood: moodInfo,
+        type,
+        recommendations,
+        total: recommendations.length,
+      }, `${type} recommendations retrieved successfully`)
+    );
+  } catch (error) {
+    console.error('Error getting recommendations:', error.message);
+    res.status(500).json(
+      ApiResponse.error('Failed to fetch recommendations')
     );
   }
-
-  let recommendations;
-
-  if (type === 'tracks') {
-    recommendations = await Track.getByMood(mood, parseInt(limit));
-  } else if (type === 'playlists') {
-    recommendations = await Playlist.getByMood(mood, parseInt(limit));
-  } else {
-    return res.status(400).json(
-      ApiResponse.error('Type must be either "tracks" or "playlists"')
-    );
-  }
-
-  // Increment mood usage
-  await moodDoc.incrementUsage();
-
-  res.json(
-    ApiResponse.success({
-      mood: {
-        _id: moodDoc._id,
-        name: moodDoc.name,
-        emoji: moodDoc.emoji,
-        color: moodDoc.color,
-      },
-      type,
-      recommendations,
-      total: recommendations.length,
-    }, `${type} recommendations retrieved successfully`)
-  );
 });
+
+// Helper functions for mood metadata
+const getMoodEmoji = (mood) => {
+  const moodEmojis = {
+    happy: '😊',
+    sad: '😢', 
+    chill: '😌',
+    energetic: '💪',
+    focus: '🧘',
+    party: '🎉',
+    sleep: '😴'
+  };
+  return moodEmojis[mood] || '🎵';
+};
+
+const getMoodColor = (mood) => {
+  const moodColors = {
+    happy: '#FFD700',
+    sad: '#4169E1',
+    chill: '#98FB98', 
+    energetic: '#FF6347',
+    focus: '#DDA0DD',
+    party: '#FF1493',
+    sleep: '#191970'
+  };
+  return moodColors[mood] || '#808080';
+};
 
 /**
  * @desc    Search tracks
@@ -70,16 +99,55 @@ const searchTracks = asyncHandler(async (req, res) => {
     );
   }
 
-  const tracks = await Track.search(query, parseInt(limit));
+  try {
+    const searchResults = await spotifyService.search(query, ['track'], parseInt(limit));
 
-  res.json(
-    ApiResponse.success({
-      query,
-      tracks,
-      total: tracks.length,
-      page: parseInt(page),
-    }, 'Tracks search completed')
-  );
+    res.json(
+      ApiResponse.success({
+        query,
+        tracks: searchResults.tracks || [],
+        total: (searchResults.tracks || []).length,
+        page: parseInt(page),
+      }, 'Tracks search completed')
+    );
+  } catch (error) {
+    console.error('Error searching tracks:', error.message);
+    res.status(500).json(
+      ApiResponse.error('Failed to search tracks')
+    );
+  }
+});
+
+/**
+ * @desc    Search music (tracks, artists, albums)
+ * @route   GET /api/music/search
+ * @access  Public
+ */
+const searchMusic = asyncHandler(async (req, res) => {
+  const { q: query, type = 'track', limit = 20 } = req.query;
+
+  if (!query) {
+    return res.status(400).json(
+      ApiResponse.error('Search query is required')
+    );
+  }
+
+  try {
+    const types = type.split(',').map(t => t.trim());
+    const searchResults = await spotifyService.search(query, types, parseInt(limit));
+
+    res.json(
+      ApiResponse.success({
+        query,
+        ...searchResults,
+      }, 'Music search completed')
+    );
+  } catch (error) {
+    console.error('Error searching music:', error.message);
+    res.status(500).json(
+      ApiResponse.error('Failed to search music')
+    );
+  }
 });
 
 /**
@@ -90,14 +158,37 @@ const searchTracks = asyncHandler(async (req, res) => {
 const getPopularTracks = asyncHandler(async (req, res) => {
   const { limit = 20 } = req.query;
 
-  const tracks = await Track.getPopular(parseInt(limit));
-
-  res.json(
-    ApiResponse.success({
-      tracks,
-      total: tracks.length,
-    }, 'Popular tracks retrieved successfully')
-  );
+  try {
+    // Get popular tracks from Spotify's featured playlists or trending
+    const playlists = await spotifyService.getFeaturedPlaylists(5);
+    
+    if (playlists.length > 0) {
+      // Get tracks from the first featured playlist
+      const tracks = await spotifyService.getPlaylistTracks(playlists[0].id, parseInt(limit));
+      
+      res.json(
+        ApiResponse.success({
+          tracks,
+          total: tracks.length,
+        }, 'Popular tracks retrieved successfully')
+      );
+    } else {
+      // Fallback to happy mood recommendations
+      const tracks = await spotifyService.getRecommendationsByMood('happy', parseInt(limit));
+      
+      res.json(
+        ApiResponse.success({
+          tracks,
+          total: tracks.length,
+        }, 'Popular tracks retrieved successfully')
+      );
+    }
+  } catch (error) {
+    console.error('Error getting popular tracks:', error.message);
+    res.status(500).json(
+      ApiResponse.error('Failed to fetch popular tracks')
+    );
+  }
 });
 
 /**
@@ -579,6 +670,7 @@ const playPlaylist = asyncHandler(async (req, res) => {
 module.exports = {
   getRecommendations,
   searchTracks,
+  searchMusic,
   getPopularTracks,
   getTrack,
   createTrack,

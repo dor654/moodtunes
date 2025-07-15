@@ -3,6 +3,7 @@ const router = express.Router();
 const {
   getRecommendations,
   searchTracks,
+  searchMusic,
   getPopularTracks,
   getTrack,
   createTrack,
@@ -38,6 +39,13 @@ const {
 router.get('/recommendations', getRecommendations);
 
 // ===== TRACKS =====
+
+/**
+ * @route   GET /api/music/search
+ * @desc    Search music (tracks, artists, albums)  
+ * @access  Public
+ */
+router.get('/search', validateSearch, validatePagination, searchMusic);
 
 /**
  * @route   GET /api/music/search/tracks

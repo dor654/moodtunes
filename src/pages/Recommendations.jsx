@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import { fetchPlaylistsByMood } from "../services/api";
-import { mockTracks } from "../services/mockData";
+import { getMoodRecommendations } from "../services/music";
 import RecommendationList from "../components/music/RecommendationList";
 import MusicPlayer from "../components/music/MusicPlayer";
 import LoadingSpinner from "../components/common/LoadingSpinner";
@@ -173,6 +173,7 @@ const Recommendations = () => {
   const navigate = useNavigate();
   
   const [playlists, setPlaylists] = useState([]);
+  const [tracks, setTracks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentTrack, setCurrentTrack] = useState(null);
@@ -194,8 +195,14 @@ const Recommendations = () => {
         setLoading(true);
         setError(null);
         
-        const playlistData = await fetchPlaylistsByMood(moodData.mood.id);
+        // Load both playlists and tracks for the mood
+        const [playlistData, moodRecommendations] = await Promise.all([
+          fetchPlaylistsByMood(moodData.mood.id),
+          getMoodRecommendations(moodData.mood.id)
+        ]);
+        
         setPlaylists(playlistData);
+        setTracks(moodRecommendations.recommendations || []);
       } catch (err) {
         console.error('Error loading recommendations:', err);
         setError('Failed to load recommendations. Please try again.');
@@ -212,8 +219,14 @@ const Recommendations = () => {
       setLoading(true);
       setError(null);
       
-      const playlistData = await fetchPlaylistsByMood(moodData.mood.id);
+      // Load both playlists and tracks for the mood
+      const [playlistData, moodRecommendations] = await Promise.all([
+        fetchPlaylistsByMood(moodData.mood.id),
+        getMoodRecommendations(moodData.mood.id)
+      ]);
+      
       setPlaylists(playlistData);
+      setTracks(moodRecommendations.recommendations || []);
     } catch (err) {
       console.error('Error loading recommendations:', err);
       setError('Failed to load recommendations. Please try again.');
@@ -225,9 +238,9 @@ const Recommendations = () => {
   const handlePlayPlaylist = (playlist) => {
     setCurrentPlaylist(playlist);
     
-    // For demo purposes, use the first mock track
-    if (mockTracks.length > 0) {
-      setCurrentTrack(mockTracks[0]);
+    // Use tracks from the recommendations
+    if (tracks.length > 0) {
+      setCurrentTrack(tracks[0]);
       setIsPlaying(true);
     }
   };
@@ -246,17 +259,19 @@ const Recommendations = () => {
   };
 
   const handleNext = () => {
-    // In a real app, this would play the next track in the playlist
-    const currentIndex = mockTracks.findIndex(track => track.id === currentTrack?.id);
-    const nextIndex = (currentIndex + 1) % mockTracks.length;
-    setCurrentTrack(mockTracks[nextIndex]);
+    if (tracks.length === 0) return;
+    
+    const currentIndex = tracks.findIndex(track => track.id === currentTrack?.id);
+    const nextIndex = (currentIndex + 1) % tracks.length;
+    setCurrentTrack(tracks[nextIndex]);
   };
 
   const handlePrevious = () => {
-    // In a real app, this would play the previous track in the playlist
-    const currentIndex = mockTracks.findIndex(track => track.id === currentTrack?.id);
-    const prevIndex = currentIndex > 0 ? currentIndex - 1 : mockTracks.length - 1;
-    setCurrentTrack(mockTracks[prevIndex]);
+    if (tracks.length === 0) return;
+    
+    const currentIndex = tracks.findIndex(track => track.id === currentTrack?.id);
+    const prevIndex = currentIndex > 0 ? currentIndex - 1 : tracks.length - 1;
+    setCurrentTrack(tracks[prevIndex]);
   };
 
   const getActivityName = (activityId) => {

@@ -1,25 +1,16 @@
 import { get, post, put, del } from '../utils/api';
-import { mockTracks, mockPlaylists, moods } from './mockData';
-
-// Mock delay for simulating API calls
-const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // Fetch music recommendations based on mood
 export const getMoodRecommendations = async (moodId, preferences = {}) => {
   try {
-    await delay(800);
-    
-    // Filter playlists by mood
-    const moodPlaylists = mockPlaylists.filter(playlist => playlist.mood === moodId);
-    
-    // Return recommendations with additional metadata
-    return {
-      mood: moods.find(m => m.id === moodId),
-      playlists: moodPlaylists,
-      tracks: mockTracks, // In real app, this would be mood-specific
-      total: moodPlaylists.length,
-      preferences: preferences,
-    };
+    const params = new URLSearchParams({
+      mood: moodId,
+      type: 'tracks',
+      limit: preferences.limit || 20
+    });
+
+    const response = await get(`/music/recommendations?${params}`);
+    return response.data;
   } catch (error) {
     throw new Error(error.message || 'Failed to fetch mood recommendations');
   }
@@ -28,13 +19,11 @@ export const getMoodRecommendations = async (moodId, preferences = {}) => {
 // Fetch tracks for a specific playlist
 export const getPlaylistTracks = async (playlistId) => {
   try {
-    await delay(500);
-    
-    // In real app, this would fetch tracks specific to the playlist
+    const response = await get(`/music/playlists/${playlistId}`);
     return {
       playlistId,
-      tracks: mockTracks,
-      total: mockTracks.length,
+      tracks: response.data.playlist.tracks || [],
+      total: response.data.playlist.tracks?.length || 0,
     };
   } catch (error) {
     throw new Error(error.message || 'Failed to fetch playlist tracks');
@@ -48,50 +37,42 @@ export const searchMusic = async (query, filters = {}) => {
       return {
         tracks: [],
         playlists: [],
+        artists: [],
         total: 0,
+        query: '',
       };
     }
 
-    await delay(600);
-    
-    const lowerQuery = query.toLowerCase();
-    
-    // Filter tracks by query
-    const matchingTracks = mockTracks.filter(track => 
-      track.name.toLowerCase().includes(lowerQuery) ||
-      track.artist.toLowerCase().includes(lowerQuery) ||
-      track.album.toLowerCase().includes(lowerQuery)
-    );
-    
-    // Filter playlists by query
-    const matchingPlaylists = mockPlaylists.filter(playlist =>
-      playlist.name.toLowerCase().includes(lowerQuery) ||
-      playlist.description.toLowerCase().includes(lowerQuery)
-    );
-    
+    const params = new URLSearchParams({
+      q: query.trim(),
+      type: filters.type || 'track',
+      limit: filters.limit || 20
+    });
+
+    const response = await get(`/music/search?${params}`);
     return {
-      query,
-      tracks: matchingTracks,
-      playlists: matchingPlaylists,
-      total: matchingTracks.length + matchingPlaylists.length,
-      filters: filters,
+      ...response.data,
+      total: (response.data.tracks?.length || 0) + 
+             (response.data.artists?.length || 0) + 
+             (response.data.albums?.length || 0),
+      query: query,
     };
   } catch (error) {
-    throw new Error(error.message || 'Search failed');
+    throw new Error(error.message || 'Failed to search music');
   }
 };
 
 // Get personalized recommendations
 export const getPersonalizedRecommendations = async (userId) => {
   try {
-    await delay(700);
+    const response = await get('/music/tracks/popular?limit=20');
+    const tracks = response.data.tracks || [];
     
-    // Mock personalized recommendations based on user history
     return {
-      forYou: mockTracks.slice(0, 10),
-      trending: mockTracks.slice(2, 8),
-      newReleases: mockTracks.slice(1, 6),
-      basedOnHistory: mockTracks.slice(3, 9),
+      forYou: tracks.slice(0, 10),
+      trending: tracks.slice(2, 8),
+      newReleases: tracks.slice(1, 6),
+      basedOnHistory: tracks.slice(3, 9),
     };
   } catch (error) {
     throw new Error(error.message || 'Failed to fetch personalized recommendations');
@@ -101,7 +82,8 @@ export const getPersonalizedRecommendations = async (userId) => {
 // Like/Unlike a track
 export const toggleTrackLike = async (trackId, isLiked) => {
   try {
-    await delay(300);
+    // Use the play endpoint as a like indicator for now
+    await post(`/music/tracks/${trackId}/play`);
     
     return {
       trackId,
@@ -116,7 +98,8 @@ export const toggleTrackLike = async (trackId, isLiked) => {
 // Save/Unsave a playlist
 export const togglePlaylistSave = async (playlistId, isSaved) => {
   try {
-    await delay(300);
+    // Use the play endpoint as a save indicator for now
+    await post(`/music/playlists/${playlistId}/play`);
     
     return {
       playlistId,
@@ -131,26 +114,21 @@ export const togglePlaylistSave = async (playlistId, isSaved) => {
 // Create a new playlist
 export const createPlaylist = async (playlistData) => {
   try {
-    const { name, description, tracks = [] } = playlistData;
+    const { name, description, mood, tracks = [] } = playlistData;
     
     if (!name || name.trim().length === 0) {
       throw new Error('Playlist name is required');
     }
     
-    await delay(500);
-    
-    const newPlaylist = {
-      id: `playlist_${Date.now()}`,
+    const response = await post('/music/playlists', {
       name: name.trim(),
       description: description?.trim() || '',
-      image: 'https://via.placeholder.com/300x300/6366f1/ffffff?text=♪',
-      tracks: tracks.length,
-      mood: 'custom',
-      createdAt: new Date().toISOString(),
-      isCustom: true,
-    };
+      mood: mood || 'happy', // Default mood
+      isPublic: false,
+      tracks
+    });
     
-    return newPlaylist;
+    return response.data.playlist;
   } catch (error) {
     throw new Error(error.message || 'Failed to create playlist');
   }
@@ -159,13 +137,8 @@ export const createPlaylist = async (playlistData) => {
 // Update playlist
 export const updatePlaylist = async (playlistId, updates) => {
   try {
-    await delay(400);
-    
-    return {
-      playlistId,
-      ...updates,
-      updatedAt: new Date().toISOString(),
-    };
+    const response = await put(`/music/playlists/${playlistId}`, updates);
+    return response.data.playlist;
   } catch (error) {
     throw new Error(error.message || 'Failed to update playlist');
   }
@@ -174,8 +147,7 @@ export const updatePlaylist = async (playlistId, updates) => {
 // Delete playlist
 export const deletePlaylist = async (playlistId) => {
   try {
-    await delay(300);
-    
+    await del(`/music/playlists/${playlistId}`);
     return {
       playlistId,
       message: 'Playlist deleted successfully',
@@ -192,7 +164,10 @@ export const addTracksToPlaylist = async (playlistId, trackIds) => {
       throw new Error('No tracks provided');
     }
     
-    await delay(400);
+    // Add tracks one by one (API only supports adding one track at a time)
+    for (const trackId of trackIds) {
+      await post(`/music/playlists/${playlistId}/tracks`, { trackId });
+    }
     
     return {
       playlistId,
@@ -211,7 +186,10 @@ export const removeTracksFromPlaylist = async (playlistId, trackIds) => {
       throw new Error('No tracks provided');
     }
     
-    await delay(300);
+    // Remove tracks one by one
+    for (const trackId of trackIds) {
+      await del(`/music/playlists/${playlistId}/tracks/${trackId}`);
+    }
     
     return {
       playlistId,
@@ -226,10 +204,10 @@ export const removeTracksFromPlaylist = async (playlistId, trackIds) => {
 // Get user's listening history
 export const getListeningHistory = async (limit = 50) => {
   try {
-    await delay(400);
+    // For now, use popular tracks as listening history
+    const response = await get(`/music/tracks/popular?limit=${limit}`);
     
-    // Mock listening history
-    const history = mockTracks.slice(0, limit).map((track, index) => ({
+    const history = (response.data.tracks || []).map((track, index) => ({
       ...track,
       playedAt: new Date(Date.now() - index * 3600000).toISOString(), // Spread over hours
       playCount: Math.floor(Math.random() * 10) + 1,
@@ -247,7 +225,8 @@ export const getListeningHistory = async (limit = 50) => {
 // Record track play
 export const recordTrackPlay = async (trackId, duration) => {
   try {
-    await delay(100);
+    // Use the backend API to record play
+    await post(`/music/tracks/${trackId}/play`);
     
     return {
       trackId,
@@ -264,15 +243,13 @@ export const recordTrackPlay = async (trackId, duration) => {
 // Get user's top tracks
 export const getTopTracks = async (timeRange = 'medium_term', limit = 20) => {
   try {
-    await delay(500);
-    
-    // Mock top tracks based on time range
-    const shuffledTracks = [...mockTracks].sort(() => Math.random() - 0.5);
+    // Use popular tracks as top tracks for now
+    const response = await get(`/music/tracks/popular?limit=${limit}`);
     
     return {
       timeRange,
-      tracks: shuffledTracks.slice(0, limit),
-      total: Math.min(limit, shuffledTracks.length),
+      tracks: response.data.tracks || [],
+      total: (response.data.tracks || []).length,
     };
   } catch (error) {
     throw new Error(error.message || 'Failed to fetch top tracks');
@@ -282,18 +259,16 @@ export const getTopTracks = async (timeRange = 'medium_term', limit = 20) => {
 // Get user's top artists
 export const getTopArtists = async (timeRange = 'medium_term', limit = 20) => {
   try {
-    await delay(500);
+    // Use search with popular artist names as fallback
+    const popularArtists = ['Ed Sheeran', 'Taylor Swift', 'Drake', 'Ariana Grande', 'Post Malone'];
     
-    // Extract unique artists from mock tracks
-    const artists = [...new Set(mockTracks.map(track => track.artist))]
-      .slice(0, limit)
-      .map((artist, index) => ({
-        id: `artist_${index}`,
-        name: artist,
-        image: `https://ui-avatars.com/api/?name=${encodeURIComponent(artist)}&background=6366f1&color=fff&size=300`,
-        genres: ['Pop', 'Rock', 'Electronic'].slice(0, Math.floor(Math.random() * 3) + 1),
-        popularity: Math.floor(Math.random() * 100),
-      }));
+    const artists = popularArtists.slice(0, limit).map((artist, index) => ({
+      id: `artist_${index}`,
+      name: artist,
+      image: `https://ui-avatars.com/api/?name=${encodeURIComponent(artist)}&background=6366f1&color=fff&size=300`,
+      genres: ['Pop', 'Rock', 'Electronic'].slice(0, Math.floor(Math.random() * 3) + 1),
+      popularity: Math.floor(Math.random() * 100),
+    }));
     
     return {
       timeRange,

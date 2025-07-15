@@ -32,7 +32,11 @@ class SpotifyService {
       
       console.log('✅ Spotify API initialized with client credentials');
     } catch (error) {
-      console.error('❌ Failed to initialize Spotify API:', error.message);
+      console.error('❌ Failed to initialize Spotify API:', {
+        message: error.message,
+        statusCode: error.statusCode,
+        body: error.body || error
+      });
     }
   }
 
@@ -102,8 +106,14 @@ class SpotifyService {
 
       return recommendations.body.tracks.map(track => this.formatTrack(track));
     } catch (error) {
-      console.error('Error fetching Spotify recommendations:', error.message);
-      throw new Error('Failed to fetch recommendations');
+      console.error('Error fetching Spotify recommendations:', {
+        message: error.message,
+        statusCode: error.statusCode,
+        body: error.body || error,
+        mood: mood,
+        limit: limit
+      });
+      throw new Error(`Failed to fetch recommendations: ${error.message}`);
     }
   }
 
@@ -127,8 +137,15 @@ class SpotifyService {
 
       return formatted;
     } catch (error) {
-      console.error('Error searching Spotify:', error.message);
-      throw new Error('Failed to search music');
+      console.error('Error searching Spotify:', {
+        message: error.message,
+        statusCode: error.statusCode,
+        body: error.body || error,
+        query: query,
+        types: types,
+        limit: limit
+      });
+      throw new Error(`Failed to search music: ${error.message}`);
     }
   }
 
@@ -140,8 +157,13 @@ class SpotifyService {
       const playlists = await this.spotifyApi.getFeaturedPlaylists({ limit });
       return playlists.body.playlists.items.map(playlist => this.formatPlaylist(playlist));
     } catch (error) {
-      console.error('Error fetching featured playlists:', error.message);
-      throw new Error('Failed to fetch playlists');
+      console.error('Error fetching featured playlists:', {
+        message: error.message,
+        statusCode: error.statusCode,
+        body: error.body || error,
+        limit: limit
+      });
+      throw new Error(`Failed to fetch playlists: ${error.message}`);
     }
   }
 
@@ -155,8 +177,14 @@ class SpotifyService {
         .filter(item => item.track && item.track.preview_url)
         .map(item => this.formatTrack(item.track));
     } catch (error) {
-      console.error('Error fetching playlist tracks:', error.message);
-      throw new Error('Failed to fetch playlist tracks');
+      console.error('Error fetching playlist tracks:', {
+        message: error.message,
+        statusCode: error.statusCode,
+        body: error.body || error,
+        playlistId: playlistId,
+        limit: limit
+      });
+      throw new Error(`Failed to fetch playlist tracks: ${error.message}`);
     }
   }
 
@@ -251,8 +279,13 @@ class SpotifyService {
         expires_in: data.body.expires_in
       };
     } catch (error) {
-      console.error('Error handling auth callback:', error.message);
-      throw new Error('Failed to authorize with Spotify');
+      console.error('Error handling auth callback:', {
+        message: error.message,
+        statusCode: error.statusCode,
+        body: error.body || error,
+        code: code
+      });
+      throw new Error(`Failed to authorize with Spotify: ${error.message}`);
     }
   }
 }

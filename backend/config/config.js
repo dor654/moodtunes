@@ -3,12 +3,8 @@ require("dotenv").config();
 module.exports = {
   PORT: process.env.PORT || 5000,
   NODE_ENV: process.env.NODE_ENV || "development",
-  MONGODB_URI:
-    process.env.MONGODB_URI ||
-    "mongodb+srv://dor:foo123@cluster0.g8ryhay.mongodb.net/",
-  JWT_SECRET:
-    process.env.JWT_SECRET ||
-    "5bc451e20ec358e295ec369e3588cc11dcbeabb0e5d3259a4c052e548b164cee",
+  MONGODB_URI: process.env.MONGODB_URI,
+  JWT_SECRET: process.env.JWT_SECRET,
   JWT_EXPIRE: process.env.JWT_EXPIRE || "7d",
   JWT_REFRESH_EXPIRE: process.env.JWT_REFRESH_EXPIRE || "30d",
   CORS_ORIGIN: process.env.CORS_ORIGIN || "http://localhost:3000",
@@ -21,7 +17,7 @@ module.exports = {
   BCRYPT_ROUNDS: process.env.BCRYPT_ROUNDS || 12,
 
   // Spotify API configuration
-  SPOTIFY_CLIENT_ID: process.env.SPOTIFY_CLIENT_ID || "843ee24361934198b12fc5cafbbd8854",
-  SPOTIFY_CLIENT_SECRET: process.env.SPOTIFY_CLIENT_SECRET || "d788d425fd6d48f4933c46cb8fdad16d",
-  SPOTIFY_REDIRECT_URI: process.env.SPOTIFY_REDIRECT_URI || "http://127.0.0.1:3000/auth/callback"
+  SPOTIFY_CLIENT_ID: process.env.SPOTIFY_CLIENT_ID,
+  SPOTIFY_CLIENT_SECRET: process.env.SPOTIFY_CLIENT_SECRET,
+  SPOTIFY_REDIRECT_URI: process.env.SPOTIFY_REDIRECT_URI || "http://localhost:3000/auth/callback"
 };

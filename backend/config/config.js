@@ -10,14 +10,15 @@ module.exports = {
   CORS_ORIGIN: process.env.CORS_ORIGIN || "http://localhost:3000",
 
   // Rate limiting
-  RATE_LIMIT_WINDOW: process.env.RATE_LIMIT_WINDOW || 15 * 60 * 1000, // 15 minutes
-  RATE_LIMIT_MAX: process.env.RATE_LIMIT_MAX || 100, // requests per window
+  RATE_LIMIT_WINDOW: parseInt(process.env.RATE_LIMIT_WINDOW) || 15 * 60 * 1000, // 15 minutes
+  RATE_LIMIT_MAX: parseInt(process.env.RATE_LIMIT_MAX) || 100, // requests per window
 
   // Security
-  BCRYPT_ROUNDS: process.env.BCRYPT_ROUNDS || 12,
+  BCRYPT_ROUNDS: parseInt(process.env.BCRYPT_ROUNDS) || 12,
 
   // Spotify API configuration
   SPOTIFY_CLIENT_ID: process.env.SPOTIFY_CLIENT_ID,
   SPOTIFY_CLIENT_SECRET: process.env.SPOTIFY_CLIENT_SECRET,
-  SPOTIFY_REDIRECT_URI: process.env.SPOTIFY_REDIRECT_URI || "http://localhost:3000/auth/callback"
+  SPOTIFY_REDIRECT_URI:
+    process.env.SPOTIFY_REDIRECT_URI || "http://localhost:3000/auth/callback",
 };

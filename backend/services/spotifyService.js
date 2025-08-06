@@ -1,4 +1,4 @@
-const SpotifyWebApi = require("spotify-web-api-node");
+const axios = require("axios");
 const config = require("../config/config");
 
 class SpotifyService {
@@ -6,15 +6,10 @@ class SpotifyService {
     this.isConfigured = !!(
       config.SPOTIFY_CLIENT_ID && config.SPOTIFY_CLIENT_SECRET
     );
+    this.accessToken = null;
+    this.tokenExpiry = null;
 
     if (this.isConfigured) {
-      this.spotifyApi = new SpotifyWebApi({
-        clientId: config.SPOTIFY_CLIENT_ID,
-        clientSecret: config.SPOTIFY_CLIENT_SECRET,
-        redirectUri:
-          config.SPOTIFY_REDIRECT_URI || "http://localhost:3000/auth/callback",
-      });
-
       this.initializeClientCredentials();
     } else {
       console.warn("⚠️  Spotify credentials not configured. Using mock data.");
@@ -30,20 +25,53 @@ class SpotifyService {
     }
 
     try {
-      const data = await this.spotifyApi.clientCredentialsGrant();
-      this.spotifyApi.setAccessToken(data.body["access_token"]);
+      const credentials = Buffer.from(
+        `${config.SPOTIFY_CLIENT_ID}:${config.SPOTIFY_CLIENT_SECRET}`
+      ).toString("base64");
+
+      const response = await axios({
+        method: "POST",
+        url: "https://accounts.spotify.com/api/token",
+        headers: {
+          Authorization: `Basic ${credentials}`,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        data: "grant_type=client_credentials",
+      });
+
+      this.accessToken = response.data.access_token;
+      this.tokenExpiry = Date.now() + (response.data.expires_in - 60) * 1000;
+
+      // Test the connection with a simple API call
+      try {
+        const genresResponse = await axios({
+          method: "GET",
+          url: "https://api.spotify.com/v1/recommendations/available-genre-seeds",
+          headers: {
+            Authorization: `Bearer ${this.accessToken}`,
+          },
+        });
+        console.log("✅ Spotify API initialized with client credentials");
+        console.log(
+          `📋 Available genres count: ${genresResponse.data.genres.length}`
+        );
+      } catch (testError) {
+        console.error("❌ Failed to test Spotify API connection:", {
+          message: testError.message,
+          status: testError.response?.status,
+          data: testError.response?.data,
+        });
+      }
 
       // Refresh token before expiry
       setTimeout(() => {
         this.initializeClientCredentials();
-      }, (data.body["expires_in"] - 60) * 1000);
-
-      console.log("✅ Spotify API initialized with client credentials");
+      }, response.data.expires_in * 1000 - 60000);
     } catch (error) {
       console.error("❌ Failed to initialize Spotify API:", {
         message: error.message,
-        statusCode: error.statusCode,
-        body: error.body || error,
+        status: error.response?.status,
+        data: error.response?.data,
       });
       this.isConfigured = false; // Fallback to mock data
     }
@@ -226,7 +254,7 @@ class SpotifyService {
         target_valence: 0.5,
         target_energy: 0.3,
         target_acousticness: 0.7,
-        seed_genres: ["chill", "ambient", "lo-fi"],
+        seed_genres: ["indie", "acoustic", "folk"],
       },
       energetic: {
         target_valence: 0.7,
@@ -250,7 +278,7 @@ class SpotifyService {
         target_valence: 0.3,
         target_energy: 0.1,
         target_acousticness: 0.9,
-        seed_genres: ["ambient", "sleep", "nature"],
+        seed_genres: ["ambient", "jazz", "classical"],
       },
     };
 
@@ -261,28 +289,48 @@ class SpotifyService {
    * Get track recommendations based on mood
    */
   async getRecommendationsByMood(mood, limit = 20) {
-    // If Spotify is not configured, return mock data
-    if (!this.isConfigured) {
+    // If Spotify is not configured or token expired, return mock data
+    if (
+      !this.isConfigured ||
+      !this.accessToken ||
+      Date.now() > this.tokenExpiry
+    ) {
       console.log(`🎵 Using mock data for mood: ${mood}`);
       return this.getMockTracks(mood, limit);
     }
 
     try {
       const moodParams = this.getMoodParameters(mood);
-
-      const recommendations = await this.spotifyApi.getRecommendations({
+      console.log(`🎵 Spotify request parameters for mood '${mood}':`, {
         limit,
         ...moodParams,
       });
 
-      return recommendations.body.tracks.map((track) =>
-        this.formatTrack(track)
-      );
+      // Build query parameters
+      const params = new URLSearchParams({
+        limit: limit.toString(),
+        ...Object.fromEntries(
+          Object.entries(moodParams).map(([key, value]) => [
+            key,
+            Array.isArray(value) ? value.join(",") : value.toString(),
+          ])
+        ),
+      });
+
+      const response = await axios({
+        method: "GET",
+        url: `https://api.spotify.com/v1/recommendations?${params}`,
+        headers: {
+          Authorization: `Bearer ${this.accessToken}`,
+        },
+      });
+
+      return response.data.tracks.map((track) => this.formatTrack(track));
     } catch (error) {
       console.error("Error fetching Spotify recommendations:", {
         message: error.message,
-        statusCode: error.statusCode,
-        body: error.body || error,
+        status: error.response?.status,
+        data: error.response?.data,
         mood: mood,
         limit: limit,
       });

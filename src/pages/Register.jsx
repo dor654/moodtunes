@@ -131,13 +131,13 @@ const StrengthBar = styled.div`
 const StrengthFill = styled.div`
   height: 100%;
   transition: width 0.3s, background-color 0.3s;
-  width: ${props => props.strength * 25}%;
-  background-color: ${props => {
-    if (props.strength === 1) return '#ef4444'; // weak - red
-    if (props.strength === 2) return '#f59e0b'; // fair - orange
-    if (props.strength === 3) return '#eab308'; // good - yellow
-    if (props.strength === 4) return '#10b981'; // strong - green
-    return 'transparent';
+  width: ${(props) => props.strength * 25}%;
+  background-color: ${(props) => {
+    if (props.strength === 1) return "#ef4444"; // weak - red
+    if (props.strength === 2) return "#f59e0b"; // fair - orange
+    if (props.strength === 3) return "#eab308"; // good - yellow
+    if (props.strength === 4) return "#10b981"; // strong - green
+    return "transparent";
   }};
 `;
 
@@ -152,14 +152,15 @@ const Register = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [passwordStrength, setPasswordStrength] = useState(0);
-  
+
   const { login } = useUser();
   const navigate = useNavigate();
 
   const calculatePasswordStrength = (password) => {
     let strength = 0;
     if (password.length >= 6) strength++;
-    if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength++;
+    if (/[a-z]/.test(password)) strength++;
+    if (/[A-Z]/.test(password)) strength++;
     if (/\d/.test(password)) strength++;
     if (/[^a-zA-Z\d]/.test(password)) strength++;
     return strength;
@@ -167,29 +168,34 @@ const Register = () => {
 
   const getStrengthText = (strength) => {
     switch (strength) {
-      case 1: return "Weak";
-      case 2: return "Fair";
-      case 3: return "Good";
-      case 4: return "Strong";
-      default: return "";
+      case 1:
+        return "Weak";
+      case 2:
+        return "Fair";
+      case 3:
+        return "Good";
+      case 4:
+        return "Strong";
+      default:
+        return "";
     }
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
-    
+
     // Calculate password strength
     if (name === "password") {
       setPasswordStrength(calculatePasswordStrength(value));
     }
-    
+
     // Clear error when user starts typing
     if (errors[name]) {
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
         [name]: "",
       }));
@@ -199,24 +205,37 @@ const Register = () => {
   const validateForm = () => {
     const newErrors = {};
 
+    // Username validation
     if (!formData.username.trim()) {
       newErrors.username = "Username is required";
-    } else if (formData.username.trim().length < 3) {
-      newErrors.username = "Username must be at least 3 characters long";
+    } else if (
+      formData.username.trim().length < 3 ||
+      formData.username.trim().length > 30
+    ) {
+      newErrors.username = "Username must be between 3 and 30 characters";
+    } else if (!/^[a-zA-Z0-9_-]+$/.test(formData.username.trim())) {
+      newErrors.username =
+        "Username can only contain letters, numbers, underscores, and hyphens";
     }
 
+    // Email validation
     if (!formData.email.trim()) {
       newErrors.email = "Email is required";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = "Please enter a valid email address";
     }
 
+    // Password validation
     if (!formData.password) {
       newErrors.password = "Password is required";
     } else if (formData.password.length < 6) {
       newErrors.password = "Password must be at least 6 characters long";
+    } else if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.password)) {
+      newErrors.password =
+        "Password must contain at least one lowercase letter, one uppercase letter, and one number";
     }
 
+    // Confirm password validation
     if (!formData.confirmPassword) {
       newErrors.confirmPassword = "Please confirm your password";
     } else if (formData.password !== formData.confirmPassword) {
@@ -229,7 +248,7 @@ const Register = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
@@ -245,11 +264,11 @@ const Register = () => {
         formData.password,
         formData.confirmPassword
       );
-      
+
       if (response.success) {
         await login(response.user, response.token);
         setSuccessMessage("Account created successfully! Redirecting...");
-        
+
         // Redirect after a short delay
         setTimeout(() => {
           navigate("/dashboard");
@@ -268,14 +287,14 @@ const Register = () => {
       <Form onSubmit={handleSubmit}>
         {errors.general && <ErrorMessage>{errors.general}</ErrorMessage>}
         {successMessage && <SuccessMessage>{successMessage}</SuccessMessage>}
-        
+
         <InputGroup>
           <Label htmlFor="username">Username</Label>
           <Input
             type="text"
             id="username"
             name="username"
-            placeholder="Choose a username"
+            placeholder="Choose a username (letters, numbers, _, -)"
             value={formData.username}
             onChange={handleChange}
             className={errors.username ? "error" : ""}
@@ -305,7 +324,7 @@ const Register = () => {
             type="password"
             id="password"
             name="password"
-            placeholder="Create a password"
+            placeholder="Create a password (min 6 chars, uppercase, lowercase, number)"
             value={formData.password}
             onChange={handleChange}
             className={errors.password ? "error" : ""}
@@ -313,7 +332,7 @@ const Register = () => {
           />
           {formData.password && (
             <PasswordStrength>
-              <span style={{ color: 'var(--text-secondary)' }}>
+              <span style={{ color: "var(--text-secondary)" }}>
                 Password strength: {getStrengthText(passwordStrength)}
               </span>
               <StrengthBar>
@@ -336,14 +355,16 @@ const Register = () => {
             className={errors.confirmPassword ? "error" : ""}
             disabled={isLoading}
           />
-          {errors.confirmPassword && <ErrorMessage>{errors.confirmPassword}</ErrorMessage>}
+          {errors.confirmPassword && (
+            <ErrorMessage>{errors.confirmPassword}</ErrorMessage>
+          )}
         </InputGroup>
 
         <Button type="submit" disabled={isLoading}>
           {isLoading ? "Creating Account..." : "Create Account"}
         </Button>
       </Form>
-      
+
       <LinkContainer>
         Already have an account? <StyledLink to="/login">Log in</StyledLink>
       </LinkContainer>

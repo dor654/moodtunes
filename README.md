@@ -1,25 +1,50 @@
-# MoodTunes
+# 🎵 MoodTunes
 
-A mood-based music recommendation application built with React frontend and Node.js/Express backend, integrated with Spotify Web API for real music data.
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-View%20App-blue?style=for-the-badge)](https://your-app-url.vercel.app)
+[![GitHub](https://img.shields.io/badge/GitHub-Repository-black?style=for-the-badge&logo=github)](https://github.com/dor654/moodtunes)
 
-## Features
+> A modern web application that curates personalized music recommendations based on your current mood and activity.
+
+## 🌟 Features
 
 ### 🎵 Music Discovery
+
 - **Mood-based recommendations** - Get personalized music suggestions based on your current mood
 - **Real Spotify integration** - Access to millions of tracks via Spotify Web API
 - **Smart search** - Find tracks, artists, and albums
 - **30-second previews** - Listen to track previews without Spotify Premium
 
-### 🎨 User Experience  
+### 🎨 User Experience
+
 - **Intuitive mood selector** - Easy-to-use interface for selecting your current vibe
 - **Responsive design** - Works seamlessly on desktop and mobile devices
 - **Music player** - Built-in player with standard controls
 - **Playlist management** - Create and manage personal playlists
 
 ### 🔐 Authentication & Personalization
-- **User accounts** - Secure registration and login system
+
+- **User accounts** - Secure registration and login system with JWT tokens
 - **Personalized recommendations** - Music suggestions tailored to your preferences
 - **Listening history** - Track your music discovery journey
+
+## 🛠️ Tech Stack
+
+### Frontend
+
+![React](https://img.shields.io/badge/React-18.x-61dafb?logo=react)
+![JavaScript](https://img.shields.io/badge/JavaScript-ES6+-f7df1e?logo=javascript&logoColor=black)
+![Styled Components](https://img.shields.io/badge/Styled%20Components-5.x-db7093?logo=styled-components)
+
+### Backend
+
+![Node.js](https://img.shields.io/badge/Node.js-18.x-339933?logo=node.js)
+![Express.js](https://img.shields.io/badge/Express.js-4.x-000000?logo=express)
+![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47a248?logo=mongodb)
+![JWT](https://img.shields.io/badge/JWT-Auth-000000?logo=json-web-tokens)
+
+### External APIs
+
+![Spotify](https://img.shields.io/badge/Spotify-Web%20API-1db954?logo=spotify)
 
 ## Project Structure
 
@@ -63,28 +88,31 @@ moodtunes/
 #### 2. Backend Environment Configuration
 
 1. **Navigate to the backend directory:**
+
    ```bash
    cd backend
    ```
 
 2. **Create environment file:**
+
    ```bash
    cp .env.example .env
    ```
 
 3. **Configure your .env file:**
+
    ```env
    # Database connection
    MONGODB_URI=mongodb://localhost:27017/moodtunes
    # OR use MongoDB Atlas:
    # MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/moodtunes
-   
+
    # JWT Secret (Generate a secure random string for production)
    JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
-   
+
    # Frontend URL for CORS
    CORS_ORIGIN=http://localhost:3000
-   
+
    # Spotify API Credentials
    SPOTIFY_CLIENT_ID=your-spotify-client-id-here
    SPOTIFY_CLIENT_SECRET=your-spotify-client-secret-here
@@ -94,12 +122,14 @@ moodtunes/
 #### 3. Install Dependencies
 
 **Backend:**
+
 ```bash
 cd backend
 npm install
 ```
 
 **Frontend:**
+
 ```bash
 cd ..  # Back to root directory
 npm install
@@ -110,12 +140,14 @@ npm install
 To run both frontend and backend:
 
 1. **Terminal 1 - Backend:**
+
    ```bash
    cd backend
    npm run dev
    ```
 
 2. **Terminal 2 - Frontend:**
+
    ```bash
    npm start
    ```
@@ -165,6 +197,7 @@ The backend provides a comprehensive REST API. See [backend/README.md](backend/R
 ## Tech Stack
 
 ### Frontend
+
 - **React** - UI library with hooks and context
 - **React Router** - Client-side routing
 - **Styled Components** - CSS-in-JS styling
@@ -172,6 +205,7 @@ The backend provides a comprehensive REST API. See [backend/README.md](backend/R
 - **Axios** - HTTP client for API calls
 
 ### Backend
+
 - **Node.js** - Runtime environment
 - **Express.js** - Web framework
 - **MongoDB** - Database
@@ -181,10 +215,12 @@ The backend provides a comprehensive REST API. See [backend/README.md](backend/R
 - **express-validator** - Request validation
 
 ### Integrations
+
 - **Spotify Web API** - Music data and recommendations
 - **spotify-web-api-node** - Official Spotify SDK
 
 ### Security & Tools
+
 - **Helmet** - Security headers
 - **CORS** - Cross-origin resource sharing
 - **Rate Limiting** - API protection
@@ -194,17 +230,20 @@ The backend provides a comprehensive REST API. See [backend/README.md](backend/R
 ## API Endpoints
 
 ### Music & Recommendations
+
 - `GET /api/music/recommendations?mood={mood}` - Get mood-based recommendations
 - `GET /api/music/search?q={query}` - Search tracks, artists, albums
 - `GET /api/music/tracks/popular` - Get popular tracks
 
 ### Authentication
+
 - `POST /api/auth/login` - User login
 - `POST /api/auth/register` - User registration
 - `POST /api/auth/logout` - User logout
 - `GET /api/auth/validate` - Validate JWT token
 
 ### User Management
+
 - `GET /api/users/profile` - Get user profile
 - `PUT /api/users/profile` - Update user profile
 

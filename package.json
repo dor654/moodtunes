@@ -21,7 +21,13 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "dev": "concurrently \"npm run backend:dev\" \"npm start\"",
+    "backend:dev": "cd backend && npm run dev",
+    "backend:start": "cd backend && npm start",
+    "deploy:build": "npm run build",
+    "deploy:frontend": "npm run build && echo 'Frontend built successfully. Deploy the build folder to your hosting service.'",
+    "install:all": "npm install && cd backend && npm install"
   },
   "eslintConfig": {
     "extends": [

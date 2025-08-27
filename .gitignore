@@ -29,6 +29,9 @@ yarn-error.log*
 /backend/uploads/
 /backend/logs/
 
-
+# Documentation and guides (development only)
+screenshots/README.md
+screenshots/SCREENSHOT_GUIDE.md
+screenshots/IMAGE_OPTIMIZATION.md
 .DEPLOYMENT_CHECKLIST.md
 deployment-guide.md

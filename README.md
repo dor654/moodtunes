@@ -46,6 +46,22 @@
 
 ![Spotify](https://img.shields.io/badge/Spotify-Web%20API-1db954?logo=spotify)
 
+## 🚀 Live Demo
+
+### 🌐 Application Links
+
+- **🔗 Frontend**: [https://moodtunes.vercel.app](https://your-app-url.vercel.app)
+- **⚡ API**: [https://moodtunes-api.railway.app](https://your-backend-url.railway.app)
+
+### 🧪 Demo Account
+
+For testing purposes, you can use these credentials:
+
+- **Email**: `demo@moodtunes.com`
+- **Password**: `DemoPass123`
+
+> **💡 Note**: The application includes fallback mock data, so you'll see music recommendations even if Spotify API has temporary issues.
+
 ## Project Structure
 
 ```
@@ -246,6 +262,29 @@ The backend provides a comprehensive REST API. See [backend/README.md](backend/R
 
 - `GET /api/users/profile` - Get user profile
 - `PUT /api/users/profile` - Update user profile
+
+## 📱 Screenshots
+
+### Application Views
+
+#### Homepage
+
+![Homepage](./screenshots/homepage.png)
+_Modern landing page with intuitive navigation_
+
+#### User Authentication
+
+<div align="center">
+  <img src="./screenshots/login.png" alt="Login Page" width="45%">
+  <img src="./screenshots/signup.png" alt="Signup Page" width="45%">
+</div>
+
+_Secure authentication system_
+
+#### Mood Selection
+
+![Mood Selector](./screenshots/moodselector.png)
+_Interactive mood selection interface_
 
 ## Development Workflow
 

@@ -294,7 +294,7 @@ const Register = () => {
             type="text"
             id="username"
             name="username"
-            placeholder="Choose a username (letters, numbers, _, -)"
+            placeholder="Choose a username "
             value={formData.username}
             onChange={handleChange}
             className={errors.username ? "error" : ""}
@@ -324,7 +324,7 @@ const Register = () => {
             type="password"
             id="password"
             name="password"
-            placeholder="Create a password (min 6 chars, uppercase, lowercase, number)"
+            placeholder="Create a password "
             value={formData.password}
             onChange={handleChange}
             className={errors.password ? "error" : ""}

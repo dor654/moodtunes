@@ -28,3 +28,7 @@ yarn-error.log*
 /backend/.env
 /backend/uploads/
 /backend/logs/
+
+
+.DEPLOYMENT_CHECKLIST.md
+deployment-guide.md
